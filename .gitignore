@@ -1,0 +1,22 @@
+# Secrets -- config.py holds your live bot token and chat id. Never commit it.
+# Copy config.example.py to config.py and fill in your own values.
+config.py
+
+# Runtime state written by the bot
+app_state.json
+sentinel_seen.json
+
+# A custom pet image, if you drop one in
+pet.png
+
+# Logs and Python cruft
+*.log
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+
+# Pet changes sent from Telegram
+pet_settings.json
+pet_custom.png

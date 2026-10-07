@@ -1,0 +1,5 @@
+python-telegram-bot[job-queue]>=22.8,<23
+psutil>=7.2,<8
+watchdog>=6,<7
+Pillow>=12,<13
+opencv-python>=5,<6
