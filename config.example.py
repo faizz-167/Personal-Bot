@@ -48,3 +48,10 @@ CAMERA_WARMUP = 8
 #    This asks ipinfo.io where your public IP is, so that service sees your
 #    IP address. It is city-level at best -- see the note in the README.
 LOCATION_ENABLED = True
+
+# 12) Low-battery alert: message when the battery drops below BATTERY_LOW
+#     percent while unplugged, then again after every further BATTERY_STEP
+#     percent (30 -> alerts below 30, 20, 10). Set BATTERY_LOW = 0 to turn
+#     it off.
+BATTERY_LOW = 30
+BATTERY_STEP = 10

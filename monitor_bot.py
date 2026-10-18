@@ -13,6 +13,7 @@ Automatic alerts (need CHAT_ID set in config.py):
   - "Laptop online" when the bot starts
   - Internet lost / restored
   - New file appears in the watched folder (default: Downloads)
+  - Battery below 30%, then again every further 10% (on battery only)
 
 Only your own chat id can use the sensitive commands, so nobody who
 stumbles onto the bot can screenshot your screen.
@@ -893,10 +894,11 @@ def _pet_unit_installed():
 
 
 def do_pet_stop():
-    # Stop the unit too, or systemd's Restart= would bring the pet back.
+    # Stop the unit too, or systemd's Restart= would bring the pet back, and
+    # disable it, or it starts again with the next login.
     if _pet_unit_installed():
         was = _run(["systemctl", "--user", "is-active", PET_UNIT]) == "active"
-        subprocess.run(["systemctl", "--user", "stop", PET_UNIT],
+        subprocess.run(["systemctl", "--user", "disable", "--now", PET_UNIT],
                        capture_output=True, timeout=15)
         if was:
             return True
@@ -912,9 +914,14 @@ def do_pet_stop():
 
 
 def do_pet_start():
+    unit = _pet_unit_installed()
+    if unit:
+        # Re-enable so the pet comes back with every login, as before /petstop.
+        subprocess.run(["systemctl", "--user", "enable", PET_UNIT],
+                       capture_output=True, timeout=15)
     if find_pet_process():
         return False
-    if _pet_unit_installed():
+    if unit:
         r = subprocess.run(["systemctl", "--user", "start", PET_UNIT],
                            capture_output=True, text=True, timeout=15)
         if r.returncode != 0:
@@ -1034,6 +1041,27 @@ async def check_internet(context: ContextTypes.DEFAULT_TYPE):
     if prev is not None and up != prev:
         msg = "Internet restored." if up else "Internet lost."
         await context.bot.send_message(config.CHAT_ID, msg)
+
+
+async def check_battery(context: ContextTypes.DEFAULT_TYPE):
+    """Alert once the battery drops below BATTERY_LOW, then again after each
+    further BATTERY_STEP percent. Plugging in (or charging back above the
+    threshold) resets it."""
+    batt = await asyncio.to_thread(psutil.sensors_battery)
+    if batt is None:
+        return
+    low = getattr(config, "BATTERY_LOW", 30)
+    step = getattr(config, "BATTERY_STEP", 10)
+    pct = batt.percent
+    if batt.power_plugged or pct >= low:
+        context.bot_data.pop("batt_alerted", None)
+        return
+    last = context.bot_data.get("batt_alerted")
+    if last is not None and pct > last - step:
+        return
+    context.bot_data["batt_alerted"] = pct
+    await context.bot.send_message(
+        config.CHAT_ID, f"Battery low: {pct:.0f}%. Plug in the charger.")
 
 
 async def hourly_report(context: ContextTypes.DEFAULT_TYPE):
@@ -1385,6 +1413,11 @@ def main():
     if config.CHAT_ID:
         app.job_queue.run_repeating(check_internet,
                                     interval=config.NET_CHECK_INTERVAL, first=10)
+        if (getattr(config, "BATTERY_LOW", 30)
+                and psutil.sensors_battery() is not None):
+            app.job_queue.run_repeating(check_battery, interval=60, first=20)
+            log.info("Battery alert below %s%%",
+                     getattr(config, "BATTERY_LOW", 30))
         if getattr(config, "STATUS_INTERVAL", 0):
             app.job_queue.run_repeating(hourly_report,
                                         interval=config.STATUS_INTERVAL,

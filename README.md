@@ -113,6 +113,10 @@ Automatic messages you'll receive:
   the background, and what has opened or closed since the last report.
   Change `APP_REPORT_INTERVAL` in `config.py` (seconds), or set it to `0` to
   switch it off. `/apps` gets one on demand.
+- **Battery low** - when the battery drops below 30% while unplugged, then
+  again after every further 10% (below 20%, below 10%). Plugging in resets
+  it. Change `BATTERY_LOW` / `BATTERY_STEP` in `config.py`, or set
+  `BATTERY_LOW = 0` to switch it off.
 - **Internet lost / restored**
 - **New file: ...** when a file lands in your Downloads folder
   (change the folder in `config.py` -> `WATCH_FOLDER`)
@@ -263,7 +267,7 @@ Control them with `pet_ctl.sh`, run from this folder:
 
 ```
 ./pet_ctl.sh status            # both
-./pet_ctl.sh stop pet          # pet only
+./pet_ctl.sh stop pet          # pet only, stays off after reboot
 ./pet_ctl.sh restart bot       # bot only, e.g. after editing config.py
 ./pet_ctl.sh start
 ./pet_ctl.sh logs              # follow the logs (journald rotates them)

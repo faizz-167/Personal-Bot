@@ -28,6 +28,14 @@ fi
 case "${1:-}" in
     start|stop|restart)
         systemctl --user "$1" "${UNITS[@]}" && echo "$1: ${UNITS[*]}"
+        # Stopping the pet also keeps it off after reboot; starting brings
+        # login startup back. Same as /petstop and /petstart in Telegram.
+        if [[ " ${UNITS[*]} " == *" $PET "* ]]; then
+            case "$1" in
+                stop)  systemctl --user disable "$PET" 2>/dev/null ;;
+                start) systemctl --user enable "$PET" 2>/dev/null ;;
+            esac
+        fi
         ;;
     status)
         for u in "${UNITS[@]}"; do
